@@ -4,19 +4,20 @@ const options = {
   definition: {
     openapi: "3.0.0",
     info: {
-      title: "LeelaZero Bot API",
+      title: "User API",
       version: "1.0.0",
-      description: "API tương tác với LeelaZero bot + User API",
+      description: "Simple API for managing users (Node.js + MongoDB + MVC)",
     },
     servers: [
       {
-        url: "http://localhost:3000",
-        description: "Local server",
+        url: "/", // 👈 Sử dụng chính domain của backend server
+        description: "Dynamic base URL (used automatically by Swagger UI)",
       },
     ],
   },
-  apis: ["./routes/*.js"], 
+  apis: ["./routes/*.js"], // nơi chứa mô tả Swagger
 };
 
 const swaggerSpec = swaggerJSDoc(options);
+
 module.exports = swaggerSpec;
