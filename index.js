@@ -4,8 +4,10 @@ const mongoose = require("mongoose");
 const userRoutes = require("./routes/user.routes");
 const swaggerUi = require("swagger-ui-express");
 const swaggerSpec = require("./swagger");
+const cors = require("cors");
 
 const app = express();
+app.use(cors()); // 👈 Cho phép tất cả origin truy cập
 app.use(express.json());
 
 // Connect MongoDB
