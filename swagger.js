@@ -1,23 +1,22 @@
-// swagger.js
 const swaggerJSDoc = require("swagger-jsdoc");
 
 const options = {
   definition: {
     openapi: "3.0.0",
     info: {
-      title: "User API",
+      title: "LeelaZero Bot API",
       version: "1.0.0",
-      description: "Simple API for managing users (Node.js + MongoDB + MVC)",
+      description: "API tương tác với LeelaZero bot + User API",
     },
     servers: [
       {
         url: "http://localhost:3000",
+        description: "Local server",
       },
     ],
   },
-  apis: ["./routes/*.js"], // nơi đọc mô tả Swagger
+  apis: ["./routes/*.js"], 
 };
 
 const swaggerSpec = swaggerJSDoc(options);
-
 module.exports = swaggerSpec;

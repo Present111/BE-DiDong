@@ -1,32 +1,42 @@
 require("dotenv").config();
 const express = require("express");
 const mongoose = require("mongoose");
-const userRoutes = require("./routes/user.routes");
+const cors = require("cors");
 const swaggerUi = require("swagger-ui-express");
 const swaggerSpec = require("./swagger");
-const cors = require("cors");
+
+const userRoutes = require("./routes/user.routes");
+const gameOfGoRoutes = require("./routes/gameofgo.routes");        // ✅ giữ lại Game Of Go
+
+const GameOfGoService = require("./services/GameOfGoService");     // ✅ giữ lại Game Of Go
 
 const app = express();
-app.use(cors()); // 👈 Cho phép tất cả origin truy cập
+app.use(cors());
 app.use(express.json());
 
-// Connect MongoDB
+// ✅ Kết nối MongoDB
 mongoose
   .connect(process.env.MONGO_URI)
   .then(() => console.log("✅ Connected to MongoDB Atlas"))
   .catch((err) => console.error("❌ MongoDB connection error:", err));
 
-// Routes
-app.use("/api/users", userRoutes);
+// ✅ Khởi động Game Of Go bot
+GameOfGoService.init();
 
-// Swagger
+// ✅ Routes
+app.use("/api/users", userRoutes);
+app.use("/api/gameofgo", gameOfGoRoutes);               // ✅ chỉ còn Game Of Go routes
+
+// ✅ Swagger Docs
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
-// Root
+// ✅ Root
 app.get("/", (req, res) => {
-  res.send("👋 Hello from user-api-app with Swagger!");
+  res.send("👋 Hello from user-api-app + Game Of Go bot only!");
 });
 
-app.listen(process.env.PORT, () => {
-  console.log(`🚀 Server running at http://localhost:${process.env.PORT}`);
+// ✅ Start Server
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`🚀 Server running at http://localhost:${PORT}`);
 });
