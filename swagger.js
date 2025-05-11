@@ -1,4 +1,3 @@
-// swagger.js
 const swaggerJSDoc = require("swagger-jsdoc");
 
 const options = {
@@ -11,11 +10,12 @@ const options = {
     },
     servers: [
       {
-        url: "http://localhost:3000",
+        url: "/", // 👈 Sử dụng chính domain của backend server
+        description: "Dynamic base URL (used automatically by Swagger UI)",
       },
     ],
   },
-  apis: ["./routes/*.js"], // nơi đọc mô tả Swagger
+  apis: ["./routes/*.js"], // nơi chứa mô tả Swagger
 };
 
 const swaggerSpec = swaggerJSDoc(options);
