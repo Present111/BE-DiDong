@@ -10,7 +10,7 @@ const options = {
     },
     servers: [
       {
-        url: "/", // 👈 Sử dụng chính domain của backend server
+        url: "https://e153-14-186-86-134.ngrok-free.app", // 👈 Sử dụng chính domain của backend server
         description: "Dynamic base URL (used automatically by Swagger UI)",
       },
     ],

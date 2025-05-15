@@ -1,12 +1,22 @@
-// controllers/GameOfGoController.js
 const GameOfGoService = require('../services/GameOfGoService');
 
-exports.playMove = (req, res) => {
+exports.playMove = async (req, res) => {
     const { move } = req.body;
-    if (!move) return res.status(400).send("Missing move");
+    if (!move) return res.status(400).send("Thiếu tham số move");
 
-    GameOfGoService.sendCommand(`play B ${move}`);    // ví dụ: D4
-    GameOfGoService.sendCommand('genmove W');
+    try {
+        // Người chơi đi quân đen
+        await GameOfGoService.sendCommand(`play B ${move}`);
 
-    res.send(`Sent move ${move} to GameOfGo`);
+        // Bot đánh trả quân trắng
+        const botMove = await GameOfGoService.sendCommand('genmove W');
+
+        res.send({
+            playerMove: move,
+            botMove: botMove.trim()    // loại bỏ khoảng trắng thừa
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(500).send("Lỗi khi gửi lệnh đến Game Of Go");
+    }
 };

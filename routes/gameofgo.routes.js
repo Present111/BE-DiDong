@@ -1,7 +1,7 @@
-// routes/gameofgo.routes.js
 const express = require("express");
 const router = express.Router();
 const GameOfGoService = require("../services/GameOfGoService");
+const GameOfGoController = require("../controllers/GameOfGoController");
 
 /**
  * @swagger
@@ -14,7 +14,7 @@ const GameOfGoService = require("../services/GameOfGoService");
  * @swagger
  * /api/gameofgo/play:
  *   post:
- *     summary: Gửi lệnh play + genmove cho Game Of Go bot
+ *     summary: Người chơi đi + bot đánh trả
  *     tags: [GameOfGo]
  *     requestBody:
  *       required: true
@@ -30,16 +30,37 @@ const GameOfGoService = require("../services/GameOfGoService");
  *       200:
  *         description: Kết quả trả về từ Game Of Go bot
  */
-router.post("/play", async (req, res) => {
-    const { move } = req.body;
-    if (!move) return res.status(400).send("Thiếu tham số move");
+router.post("/play", GameOfGoController.playMove);
+
+/**
+ * @swagger
+ * /api/gameofgo/setup:
+ *   post:
+ *     summary: Thiết lập bàn cờ với kích thước (9, 13, 19)
+ *     tags: [GameOfGo]
+ *     requestBody:
+ *       required: false
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               size:
+ *                 type: integer
+ *                 example: 13
+ *     responses:
+ *       200:
+ *         description: Đã thiết lập bàn cờ
+ */
+router.post("/setup", async (req, res) => {
+    const { size = 13 } = req.body;
 
     try {
-        const response = await GameOfGoService.playMove(move);
-        res.send({ result: response });
+        await GameOfGoService.setupBoard(size);
+        res.send(`✅ Đã thiết lập bàn cờ ${size}x${size}`);
     } catch (err) {
         console.error(err);
-        res.status(500).send("Lỗi khi gửi lệnh đến Game Of Go");
+        res.status(500).send("Lỗi khi setup bàn cờ");
     }
 });
 

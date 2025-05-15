@@ -1,4 +1,3 @@
-// services/GameOfGoService.js
 const { spawn } = require("child_process");
 const path = require("path");
 
@@ -50,6 +49,19 @@ class GameOfGoService {
         await this.sendCommand(`play B ${move}`);
         const result = await this.sendCommand(`genmove W`);
         return result;
+    }
+
+    async setupBoard(size = 13) {
+        try {
+            if (![9, 13, 19].includes(size)) throw new Error("Kích thước bàn không hợp lệ!");
+
+            await this.sendCommand(`boardsize ${size}`);
+            await this.sendCommand("clear_board");
+
+            console.log(`✅ Bàn cờ đã được thiết lập về ${size}x${size}`);
+        } catch (error) {
+            console.error("❌ Lỗi khi thiết lập bàn cờ:", error);
+        }
     }
 
     stopEngine() {

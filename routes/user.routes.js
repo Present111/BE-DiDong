@@ -1,3 +1,4 @@
+// routes/user.routes.js
 const express = require("express");
 const router = express.Router();
 const userController = require("../controllers/user.controller");
@@ -6,8 +7,62 @@ const userController = require("../controllers/user.controller");
  * @swagger
  * tags:
  *   name: Users
- *   description: API to manage users
+ *   description: User management + Friends + Challenges
  */
+
+
+/**
+ * @swagger
+ * /api/users/login:
+ *   post:
+ *     summary: Login user
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               username:
+ *                 type: string
+ *               password:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Login successful
+ */
+router.post("/login", userController.login);
+
+/**
+ * @swagger
+ * /api/users/register:
+ *   post:
+ *     summary: Register user (normal or Google)
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               username:
+ *                 type: string
+ *               password:
+ *                 type: string
+ *               email:
+ *                 type: string
+ *               googleId:
+ *                 type: string
+ *               photo:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Register successful or Login by Google successful
+ */
+router.post("/register", userController.registerUser);
+
 
 /**
  * @swagger
@@ -22,17 +77,15 @@ const userController = require("../controllers/user.controller");
  *           schema:
  *             type: object
  *             properties:
- *               name:
+ *               username:
  *                 type: string
- *                 example: Minh
  *               email:
  *                 type: string
- *                 example: minh@example.com
+ *               password:
+ *                 type: string
  *     responses:
  *       201:
  *         description: User created
- *       500:
- *         description: Internal error
  */
 router.post("/", userController.createUser);
 
@@ -45,9 +98,225 @@ router.post("/", userController.createUser);
  *     responses:
  *       200:
  *         description: List of users
- *       500:
- *         description: Internal error
  */
-router.get("/", userController.getUsers);
+router.get("/", userController.getAllUsers);
 
+/**
+ * @swagger
+ * /api/users/{id}:
+ *   get:
+ *     summary: Get user by ID
+ *     tags: [Users]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: User data
+ */
+router.get("/:id", userController.getUserById);
+
+/**
+ * @swagger
+ * /api/users/{id}:
+ *   put:
+ *     summary: Update user by ID
+ *     tags: [Users]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *     responses:
+ *       200:
+ *         description: User updated
+ */
+router.put("/:id", userController.updateUser);
+
+/**
+ * @swagger
+ * /api/users/{id}:
+ *   delete:
+ *     summary: Delete user by ID
+ *     tags: [Users]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: User deleted
+ */
+router.delete("/:id", userController.deleteUser);
+
+/**
+ * @swagger
+ * /api/users/{id}/friends:
+ *   post:
+ *     summary: Send friend request
+ *     tags: [Users]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               friendId:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Friend request sent
+ */
+router.post("/:id/friends", userController.addFriend);
+
+/**
+ * @swagger
+ * /api/users/{id}/friends:
+ *   patch:
+ *     summary: Update friend status
+ *     tags: [Users]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               friendId:
+ *                 type: string
+ *               status:
+ *                 type: string
+ *                 enum: [friend, request, removed]
+ *     responses:
+ *       200:
+ *         description: Friend status updated
+ */
+router.patch("/:id/friends", userController.updateFriendStatus);
+
+/**
+ * @swagger
+ * /api/users/{userId}/challenges/send:
+ *   post:
+ *     summary: Send challenge to another user
+ *     tags: [Users]
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               challengerId:
+ *                 type: string
+ *               receiverId:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Challenge sent
+ */
+router.post("/:userId/challenges/send", userController.sendChallenge);
+
+/**
+ * @swagger
+ * /api/users/{userId}/challenges/{challengeId}/accept:
+ *   patch:
+ *     summary: Accept a challenge
+ *     tags: [Users]
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: path
+ *         name: challengeId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Challenge accepted
+ */
+router.patch("/:userId/challenges/:challengeId/accept", userController.acceptChallenge);
+
+/**
+ * @swagger
+ * /api/users/{userId}/challenges/{challengeId}/decline:
+ *   patch:
+ *     summary: Decline a challenge
+ *     tags: [Users]
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: path
+ *         name: challengeId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Challenge declined
+ */
+router.patch("/:userId/challenges/:challengeId/decline", userController.declineChallenge);
+
+/**
+ * @swagger
+ * /api/users/{receiverId}/challenges/{challengeId}/cancel:
+ *   patch:
+ *     summary: Cancel a challenge
+ *     tags: [Users]
+ *     parameters:
+ *       - in: path
+ *         name: receiverId
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: path
+ *         name: challengeId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Challenge cancelled
+ */
+router.patch("/:receiverId/challenges/:challengeId/cancel", userController.cancelChallenge);
+
+
+router.post("/request-change-password", userController.requestChangePasswordCode);
+router.post("/confirm-change-password", userController.confirmChangePassword);
 module.exports = router;

@@ -2,41 +2,90 @@ require("dotenv").config();
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
-const swaggerUi = require("swagger-ui-express");
-const swaggerSpec = require("./swagger");
+const ngrok = require("ngrok");
 
+const GameOfGoService = require("./services/GameOfGoService");
+const matchHistoryRoutes = require("./routes/matchHistory.routes");
 const userRoutes = require("./routes/user.routes");
-const gameOfGoRoutes = require("./routes/gameofgo.routes");        // ✅ giữ lại Game Of Go
-
-const GameOfGoService = require("./services/GameOfGoService");     // ✅ giữ lại Game Of Go
+const chatMessageRoutes = require("./routes/chatMessage.routes");
+const uploadRoute = require("./routes/uploadRoute");
+const socketInstance = require("./utils/socketInstance");
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-// ✅ Kết nối MongoDB
-mongoose
-  .connect(process.env.MONGO_URI)
-  .then(() => console.log("✅ Connected to MongoDB Atlas"))
-  .catch((err) => console.error("❌ MongoDB connection error:", err));
+// ✅ Connect MongoDB
+mongoose.connect(process.env.MONGO_URI)
+    .then(() => console.log("✅ Connected to MongoDB Atlas"))
+    .catch((err) => console.error("❌ MongoDB connection error:", err));
 
-// ✅ Khởi động Game Of Go bot
-GameOfGoService.init();
-
-// ✅ Routes
-app.use("/api/users", userRoutes);
-app.use("/api/gameofgo", gameOfGoRoutes);               // ✅ chỉ còn Game Of Go routes
-
-// ✅ Swagger Docs
-app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
-
-// ✅ Root
-app.get("/", (req, res) => {
-  res.send("👋 Hello from user-api-app + Game Of Go bot only!");
+mongoose.connection.on('error', err => {
+    console.error("❌ MongoDB runtime error:", err);
 });
 
-// ✅ Start Server
+// ✅ Start Game bot service
+GameOfGoService.init();
+
+// ✅ HTTP + Socket.io setup
+const http = require("http").createServer(app);
+const io = require("socket.io")(http, {
+    cors: { origin: "*" }
+});
+
+// ✅ Set global socket io
+socketInstance.set(io);
+
+// ✅ Start socket event handlers
+require("./socketHandler")(io);
+
+// ✅ Setup routes
+app.use("/api/matches", matchHistoryRoutes);
+app.use("/api/users", userRoutes);
+app.use("/api/chat", chatMessageRoutes);
+app.use("/api", uploadRoute);  // 👉 ✅ NEW: thêm route upload ảnh
+
+// ✅ Swagger config
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`🚀 Server running at http://localhost:${PORT}`);
+const swaggerJsdoc = require("swagger-jsdoc");
+const swaggerUi = require("swagger-ui-express");
+
+const swaggerOptions = {
+    definition: {
+        openapi: "3.0.0",
+        info: {
+            title: "Game Of Go API",
+            version: "1.0.0",
+            description: "API documentation for Game Of Go server"
+        },
+        servers: [{ url: `http://localhost:${PORT}` }]
+    },
+   apis: ["./routes/*.js"]
+};
+const swaggerSpec = swaggerJsdoc(swaggerOptions);
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+
+// ✅ Health check route
+app.get("/", (req, res) => {
+    res.send("👋 Game Of Go API + Real-time Chat + Swagger + Bot system READY!");
+});
+
+// ✅ Start server
+http.listen(PORT, async () => {
+    console.log(`🚀 Local server running at http://localhost:${PORT}`);
+    console.log(`📄 Swagger Docs at http://localhost:${PORT}/api-docs`);
+
+    // ✅ Optional: expose ngrok
+    if (process.env.NGROK_AUTH_TOKEN) {
+        try {
+            const url = await ngrok.connect({
+                addr: PORT,
+                authtoken: process.env.NGROK_AUTH_TOKEN
+            });
+            console.log(`🌐 Public ngrok URL: ${url}`);
+            console.log(`👉 FE can connect socket.io to: ${url}`);
+        } catch (err) {
+            console.error("❌ ngrok start error:", err);
+        }
+    }
 });
