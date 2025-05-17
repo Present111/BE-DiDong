@@ -101,6 +101,31 @@ router.post("/", userController.createUser);
  */
 router.get("/", userController.getAllUsers);
 
+
+/**
+ * @swagger
+ * /api/users/search:
+ *   get:
+ *     summary: Search users not yet friends or requested
+ *     tags: [Users]
+ *     parameters:
+ *       - in: query
+ *         name: query
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: List of users matching query
+ */
+router.get("/search", userController.searchUsers);
+
+
 /**
  * @swagger
  * /api/users/{id}:
@@ -319,4 +344,97 @@ router.patch("/:receiverId/challenges/:challengeId/cancel", userController.cance
 
 router.post("/request-change-password", userController.requestChangePasswordCode);
 router.post("/confirm-change-password", userController.confirmChangePassword);
+
+
+
+/**
+ * @swagger
+ * /api/users/friends/request:
+ *   post:
+ *     summary: Send a friend request
+ *     tags: [Users]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               fromUserId:
+ *                 type: string
+ *               toUserId:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Friend request sent
+ */
+router.post("/friends/request", userController.sendFriendRequest);
+
+
+/**
+ * @swagger
+ * /api/users/friends/respond:
+ *   post:
+ *     summary: Respond to a friend request (accept or reject)
+ *     tags: [Users]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               fromUserId:
+ *                 type: string
+ *               toUserId:
+ *                 type: string
+ *               accepted:
+ *                 type: boolean
+ *     responses:
+ *       200:
+ *         description: Friend request responded
+ */
+router.post("/friends/respond", userController.respondToFriendRequest);
+ 
+/**
+ * @swagger
+ * /api/users/{userId}/friends/requests:
+ *   get:
+ *     summary: Get friend requests received by user
+ *     tags: [Users]
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: List of friend requests
+ */
+router.get("/:userId/friends/requests", userController.getFriendRequests);
+
+/**
+ * @swagger
+ * /api/users/{userId}/unfriend/{friendId}:
+ *   delete:
+ *     summary: Unfriend another user (2-way removal)
+ *     tags: [Users]
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: path
+ *         name: friendId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Unfriended successfully
+ */
+router.delete("/:userId/unfriend/:friendId", userController.unfriendUser);
+
 module.exports = router;

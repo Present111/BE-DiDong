@@ -169,4 +169,23 @@ router.get("/users/:userId/conversations", chatController.getConversationsByUser
  */
 router.put("/conversations/:conversationId/mark-read/:userId", chatController.markAllMessagesRead);
 
+
+
+/**
+ * @swagger
+ * /api/conversations/unread-count/{userId}:
+ *   get:
+ *     summary: Get number of conversations with unread messages
+ *     tags: [Chat]
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Number of unread conversations
+ */
+router.get('/conversations/unread-count/:userId', chatController.getUnreadConversationCount);
 module.exports = router;

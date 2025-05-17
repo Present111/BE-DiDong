@@ -189,3 +189,27 @@ exports.markAllMessagesRead = async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 };
+
+
+
+
+exports.getUnreadConversationCount = async (req, res) => {
+    try {
+        const { userId } = req.params;
+
+        if (!userId) {
+            return res.status(400).json({ error: "Thiếu userId" });
+        }
+
+        const unreadConversations = await ChatMessage.find({
+            $or: [
+                { user1: userId, 'messages.isRead1': false },
+                { user2: userId, 'messages.isRead2': false }
+            ]
+        }).select('_id'); // chỉ lấy ID
+
+        res.json({ count: unreadConversations.length });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+};

@@ -76,16 +76,16 @@ http.listen(PORT, async () => {
     console.log(`📄 Swagger Docs at http://localhost:${PORT}/api-docs`);
 
     // ✅ Optional: expose ngrok
-    if (process.env.NGROK_AUTH_TOKEN) {
-        try {
-            const url = await ngrok.connect({
-                addr: PORT,
-                authtoken: process.env.NGROK_AUTH_TOKEN
-            });
-            console.log(`🌐 Public ngrok URL: ${url}`);
-            console.log(`👉 FE can connect socket.io to: ${url}`);
-        } catch (err) {
-            console.error("❌ ngrok start error:", err);
-        }
-    }
+    // if (process.env.NGROK_AUTH_TOKEN) {
+    //     try {
+    //         const url = await ngrok.connect({
+    //             addr: PORT,
+    //             authtoken: process.env.NGROK_AUTH_TOKEN
+    //         });
+    //         console.log(`🌐 Public ngrok URL: ${url}`);
+    //         console.log(`👉 FE can connect socket.io to: ${url}`);
+    //     } catch (err) {
+    //         console.error("❌ ngrok start error:", err);
+    //     }
+    // }
 });
