@@ -4,18 +4,15 @@ const mongoose = require("mongoose");
 const matchHistorySchema = new mongoose.Schema({
     playerBlack: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "User",
-        required: true
+        ref: "User"
     },
     playerWhite: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "User",
-        required: true
+        ref: "User"
     },
     winner: {
         type: String,
-        enum: ['black', 'white', 'draw'],
-        required: true
+        enum: ['black', 'white', 'draw']
     },
     type: {
         type: String,
@@ -24,12 +21,10 @@ const matchHistorySchema = new mongoose.Schema({
     },
     moves: [{
         order: {
-            type: Number,
-            required: true
+            type: Number
         },
         move: {
-            type: String,
-            required: true
+            type: String
         }
     }],
     startTime: {

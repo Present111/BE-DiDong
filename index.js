@@ -9,6 +9,9 @@ const matchHistoryRoutes = require("./routes/matchHistory.routes");
 const userRoutes = require("./routes/user.routes");
 const chatMessageRoutes = require("./routes/chatMessage.routes");
 const uploadRoute = require("./routes/uploadRoute");
+const gameOfGoRoutes = require("./routes/gameofgo.routes");
+
+
 const socketInstance = require("./utils/socketInstance");
 
 const app = express();
@@ -44,7 +47,7 @@ app.use("/api/matches", matchHistoryRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/chat", chatMessageRoutes);
 app.use("/api", uploadRoute);  // 👉 ✅ NEW: thêm route upload ảnh
-
+app.use("/api/gameofgo", gameOfGoRoutes);
 // ✅ Swagger config
 const PORT = process.env.PORT || 3000;
 const swaggerJsdoc = require("swagger-jsdoc");

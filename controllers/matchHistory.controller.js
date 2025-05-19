@@ -17,13 +17,44 @@ exports.getAllMatches = async (req, res) => {
 // Tạo mới match
 exports.createMatch = async (req, res) => {
     try {
-        const match = new MatchHistory(req.body);
+        console.log("📥 [Match] Nhận dữ liệu tạo trận đấu:");
+        console.log(JSON.stringify(req.body, null, 2));
+
+        const { playerBlack, playerWhite, winner, type, moves, resultDescription, deltaElo } = req.body;
+
+        if (!winner || !type || !Array.isArray(moves)) {
+            console.error("❌ Dữ liệu không hợp lệ:", { winner, type, moves });
+            return res.status(400).json({
+                message: "Thiếu trường bắt buộc hoặc moves không hợp lệ",
+                required: ["winner", "type", "moves[]"]
+            });
+        }
+
+        const match = new MatchHistory({
+            playerBlack,
+            playerWhite,
+            winner,
+            type,
+            moves,
+            resultDescription,
+            deltaElo,
+            startTime: req.body.startTime || new Date(),
+            endTime: new Date(),
+        });
+
+        console.log("📝 [Match] Dữ liệu hợp lệ, đang lưu vào MongoDB...");
+
         await match.save();
+
+        console.log("✅ [Match] Tạo match thành công với ID:", match._id);
+
         res.status(201).json(match);
     } catch (error) {
+        console.error("❌ [Match] Lỗi khi tạo match:", error);
         res.status(400).json({ message: error.message });
     }
 };
+
 
 // Lấy chi tiết 1 match theo ID
 exports.getMatchById = async (req, res) => {
