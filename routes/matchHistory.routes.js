@@ -98,10 +98,37 @@ const matchHistoryController = require("../controllers/matchHistory.controller")
  *         description: Không tìm thấy
  */
 
+
+
+/**
+ * @swagger
+ * /api/matches/user/{userId}:
+ *   get:
+ *     summary: Lấy danh sách trận đấu của user
+ *     tags: [Match History]
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID của người dùng
+ *     responses:
+ *       200:
+ *         description: Danh sách trận đấu của user
+ *       404:
+ *         description: Không tìm thấy trận đấu
+ */
+router.get("/user/:userId", matchHistoryController.getMatchesByUserId);
+
+
+
 // API routes
 router.get("/", matchHistoryController.getAllMatches);
 router.post("/", matchHistoryController.createMatch);
 router.get("/:id", matchHistoryController.getMatchById);
 router.delete("/:id", matchHistoryController.deleteMatch);
+
+
 
 module.exports = router;

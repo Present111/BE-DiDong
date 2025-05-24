@@ -133,10 +133,12 @@ router.post("/play-ai", async (req, res) => {
 
         console.log(`🤖 AI (${aiColor}) đang suy nghĩ...`);
         const aiMove = await sendCommand(`genmove ${aiColor}`);
-        console.log(`🤖 AI đánh: ${aiMove.trim()}`);
-        match.history.push({ player: aiColor, move: aiMove });
+        const cleanedAiMove = aiMove.trim().replace(/^= /, '');
+console.log(`🤖 AI đánh: ${cleanedAiMove}`);
+match.history.push({ player: aiColor, move: cleanedAiMove });
 
-        res.json({ playerMove: move, aiMove: aiMove.trim() });
+res.json({ playerMove: move, aiMove: cleanedAiMove });
+
     } catch (err) {
         console.error("❌ Lỗi khi xử lý nước đi:", err);
         res.status(500).send("❌ Lỗi khi xử lý nước đi AI");

@@ -16,7 +16,7 @@ const matchHistorySchema = new mongoose.Schema({
     },
     type: {
         type: String,
-        enum: ['ranked', 'friendly', 'bot'],  // ✅ loại trận
+        enum: ['ranked', 'friendly', 'bot','room'],  // ✅ loại trận
         default: 'friendly'
     },
     moves: [{
