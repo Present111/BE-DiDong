@@ -10,7 +10,6 @@ const userController = require("../controllers/user.controller");
  *   description: User management + Friends + Challenges
  */
 
-
 /**
  * @swagger
  * /api/users/login:
@@ -33,6 +32,18 @@ const userController = require("../controllers/user.controller");
  *         description: Login successful
  */
 router.post("/login", userController.login);
+
+/**
+ * @swagger
+ * /api/users/leaderboard:
+ *   get:
+ *     summary: Get users sorted by elo descending
+ *     tags: [Users]
+ *     responses:
+ *       200:
+ *         description: Sorted list of users by elo
+ */
+router.get("/leaderboard", userController.getUsersByElo);
 
 /**
  * @swagger
@@ -62,7 +73,6 @@ router.post("/login", userController.login);
  *         description: Register successful or Login by Google successful
  */
 router.post("/register", userController.registerUser);
-
 
 /**
  * @swagger
@@ -101,7 +111,6 @@ router.post("/", userController.createUser);
  */
 router.get("/", userController.getAllUsers);
 
-
 /**
  * @swagger
  * /api/users/search:
@@ -124,7 +133,6 @@ router.get("/", userController.getAllUsers);
  *         description: List of users matching query
  */
 router.get("/search", userController.searchUsers);
-
 
 /**
  * @swagger
@@ -293,7 +301,10 @@ router.post("/:userId/challenges/send", userController.sendChallenge);
  *       200:
  *         description: Challenge accepted
  */
-router.patch("/:userId/challenges/:challengeId/accept", userController.acceptChallenge);
+router.patch(
+  "/:userId/challenges/:challengeId/accept",
+  userController.acceptChallenge
+);
 
 /**
  * @swagger
@@ -316,7 +327,10 @@ router.patch("/:userId/challenges/:challengeId/accept", userController.acceptCha
  *       200:
  *         description: Challenge declined
  */
-router.patch("/:userId/challenges/:challengeId/decline", userController.declineChallenge);
+router.patch(
+  "/:userId/challenges/:challengeId/decline",
+  userController.declineChallenge
+);
 
 /**
  * @swagger
@@ -339,13 +353,16 @@ router.patch("/:userId/challenges/:challengeId/decline", userController.declineC
  *       200:
  *         description: Challenge cancelled
  */
-router.patch("/:receiverId/challenges/:challengeId/cancel", userController.cancelChallenge);
+router.patch(
+  "/:receiverId/challenges/:challengeId/cancel",
+  userController.cancelChallenge
+);
 
-
-router.post("/request-change-password", userController.requestChangePasswordCode);
+router.post(
+  "/request-change-password",
+  userController.requestChangePasswordCode
+);
 router.post("/confirm-change-password", userController.confirmChangePassword);
-
-
 
 /**
  * @swagger
@@ -369,7 +386,6 @@ router.post("/confirm-change-password", userController.confirmChangePassword);
  *         description: Friend request sent
  */
 router.post("/friends/request", userController.sendFriendRequest);
-
 
 /**
  * @swagger
@@ -395,7 +411,7 @@ router.post("/friends/request", userController.sendFriendRequest);
  *         description: Friend request responded
  */
 router.post("/friends/respond", userController.respondToFriendRequest);
- 
+
 /**
  * @swagger
  * /api/users/{userId}/friends/requests:

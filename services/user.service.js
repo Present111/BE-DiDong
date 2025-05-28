@@ -7,3 +7,7 @@ exports.createUser = async (data) => {
 exports.getAllUsers = async () => {
   return await User.find();
 };
+
+exports.getUsersSortedByElo = async (limit = 20) => {
+  return await User.find().sort({ elo: -1 }).limit(limit);
+};
