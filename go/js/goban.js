@@ -1,7 +1,8 @@
 var tf;
 var danModel, kyuModel;
+let modelsReady = false;
 
-if (typeof module != "undefined") {
+if (typeof module !== "undefined") {
   (async () => {
     const tfModule = await import("./tensorflow.js");
     tf = tfModule.default;
@@ -11,6 +12,8 @@ if (typeof module != "undefined") {
     kyuModel = await tf.loadGraphModel(
       "https://maksimkorzh.github.io/go/model/kyu/model.json"
     );
+    modelsReady = true; // ✅ Đánh dấu đã sẵn sàng
+    console.log("[AI] Models loaded thành công");
   })();
 }
 
@@ -433,7 +436,14 @@ function inputTensor() {
 }
 
 async function playMove(button) {
+  if (!modelsReady) {
+    console.warn("[AI] Model chưa load xong, buộc chọn nước ngẫu nhiên");
+  }
+
   const binInputs = inputTensor();
+
+  let moveScores = [];
+
   try {
     const model = await (level ? danModel : kyuModel);
     const results = await model.executeAsync({
@@ -454,37 +464,70 @@ async function playMove(button) {
       .slice([0, 0, 0], [1, 1, 361])
       .array();
     const flatPolicyArray = policyArray[0][0];
-    const scores = level ? results[2] : results[1];
-    const flatScores = scores.dataSync();
 
-    const copyPolicy = [...flatPolicyArray];
-    const topPolicies = copyPolicy.sort((a, b) => b - a).slice(0, 3);
+    moveScores = flatPolicyArray
+      .map((prob, idx) => ({ idx, prob }))
+      .sort((a, b) => b.prob - a.prob);
 
-    for (let move = 0; move < topPolicies.length; move++) {
-      let moveChoice =
-        moveHistory.length <= 6 ? Math.floor(Math.random() * 3) : move;
-      let best_19 = flatPolicyArray.indexOf(topPolicies[moveChoice]);
-      let row_19 = Math.floor(best_19 / 19);
-      let col_19 = best_19 % 19;
-      let bestMove = 21 * (row_19 + 1) + (col_19 + 1);
+    const top50 = moveScores.slice(0, 50).sort(() => 0.5 - Math.random());
 
-      // Nếu nước đi hợp lệ
-      if (setStone(bestMove, side, false)) {
-        const coord = "ABCDEFGHJKLMNOPQRST"[col_19] + (19 - row_19);
+    for (let move of top50) {
+      const row = Math.floor(move.idx / 19);
+      const col = move.idx % 19;
+      const boardIndex = 21 * (row + 1) + (col + 1);
+
+      if (setStone(boardIndex, side, false)) {
+        const coord = "ABCDEFGHJKLMNOPQRST"[col] + (19 - row);
         console.log(`= ${coord}\n`);
         return coord;
       }
     }
 
-    // Nếu không đánh được nước nào → PASS
-    passMove();
-    console.log("= PASS\n");
-    return "PASS";
+    console.warn("[Fallback] Không nước nào trong top 50 hợp lệ, thử toàn bộ");
+
+    for (let move of moveScores) {
+      const row = Math.floor(move.idx / 19);
+      const col = move.idx % 19;
+      const boardIndex = 21 * (row + 1) + (col + 1);
+
+      if (setStone(boardIndex, side, false)) {
+        const coord = "ABCDEFGHJKLMNOPQRST"[col] + (19 - row);
+        console.log(`= ${coord}\n`);
+        return coord;
+      }
+    }
   } catch (e) {
-    console.error(e);
-    passMove();
-    console.log("= PASS\n");
-    return "PASS";
+    console.error("[ERROR] Lỗi model, fallback sang đánh random:", e);
+  }
+
+  // Fallback cuối cùng: chọn ngẫu nhiên một ô còn trống
+  console.warn("[Ultimate Fallback] Đánh 1 nước random vì mọi thứ đều fail");
+
+  const emptyMoves = [];
+  for (let row = 0; row < 19; row++) {
+    for (let col = 0; col < 19; col++) {
+      const boardIndex = 21 * (row + 1) + (col + 1);
+      if (board[boardIndex] === 0) {
+        emptyMoves.push({ row, col });
+      }
+    }
+  }
+
+  if (emptyMoves.length > 0) {
+    const randomMove =
+      emptyMoves[Math.floor(Math.random() * emptyMoves.length)];
+    const boardIndex = 21 * (randomMove.row + 1) + (randomMove.col + 1);
+    setStone(boardIndex, side, false);
+    const coord = "ABCDEFGHJKLMNOPQRST"[randomMove.col] + (19 - randomMove.row);
+    console.log(`= ${coord}\n`);
+    return coord;
+  } else {
+    // Trường hợp rất hiếm: không còn ô trống nào → chơi bậy 1 nước
+    console.error("[BUG] Không còn nước nào trống, đánh lại ô (10,10)");
+    const fallbackIndex = 21 * 10 + 10;
+    setStone(fallbackIndex, side, false);
+    console.log("= K10\n");
+    return "K10";
   }
 }
 

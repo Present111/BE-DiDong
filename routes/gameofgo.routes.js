@@ -41,43 +41,62 @@ const GameOfGoManager = require("../services/GameOfGoManager");
  *         description: Tạo thành công phiên chơi AI
  */
 router.post("/start-ai-match", async (req, res) => {
-    const { userId, difficulty = "normal", playerColor = "B", boardSize = 19 } = req.body;
-    console.log("🎮 [START MATCH] Yêu cầu tạo phiên AI:", req.body);
+  const {
+    userId,
+    difficulty = "normal",
+    playerColor = "B",
+    boardSize = 19,
+  } = req.body;
+  console.log("🎮 [START MATCH] Yêu cầu tạo phiên AI:", req.body);
 
-    if (!userId) {
-        console.log("❌ Thiếu userId");
-        return res.status(400).send("❌ Thiếu userId");
+  if (!userId) {
+    console.log("❌ Thiếu userId");
+    return res.status(400).send("❌ Thiếu userId");
+  }
+
+  if (!["B", "W"].includes(playerColor)) {
+    console.log("❌ Quân chơi không hợp lệ:", playerColor);
+    return res.status(400).send("❌ Quân chơi không hợp lệ");
+  }
+
+  try {
+    console.log("⏳ Đang khởi tạo phiên đấu AI...");
+    await GameOfGoManager.createMatch(
+      userId,
+      difficulty,
+      playerColor,
+      boardSize
+    );
+    const session = GameOfGoManager.getSession(userId);
+
+    let aiMoveFirst = null;
+
+    if (playerColor === "W") {
+      console.log("🤖 Người chơi là Trắng, AI (Đen) sẽ đi trước...");
+
+      const aiMove = await Promise.race([
+        session.sendCommand(`genmove B`),
+        new Promise((_, reject) =>
+          setTimeout(() => reject("⏱ Timeout genmove B"), 5000)
+        ),
+      ]);
+
+      aiMoveFirst = aiMove.trim().replace(/^= /, "");
+      session.match.history.push({ player: "B", move: aiMoveFirst });
+
+      console.log("✅ AI (Đen) đi nước đầu tiên:", aiMoveFirst);
     }
 
-    if (!["B", "W"].includes(playerColor)) {
-        console.log("❌ Quân chơi không hợp lệ:", playerColor);
-        return res.status(400).send("❌ Quân chơi không hợp lệ");
-    }
-
-    try {
-        console.log("⏳ Đang khởi tạo phiên đấu AI...");
-        await GameOfGoManager.createMatch(userId, difficulty, playerColor, boardSize);
-        const session = GameOfGoManager.getSession(userId);
-
-        // Nếu người chơi là Trắng -> AI (Đen) đi trước
-        if (playerColor === "W") {
-            console.log("🤖 Người chơi là Trắng, AI (Đen) sẽ đi trước...");
-                const timeout = setTimeout(() => {
-        console.error("⏱ Quá thời gian chờ AI phản hồi (genmove B)");
-    },3000); // 5 giây
-            const aiMove = await session.sendCommand(`genmove B`);
-            session.match.history.push({ player: "B", move: aiMove.trim() });
-            console.log("✅ AI (Đen) đi nước đầu tiên:", aiMove.trim());
-        }
-
-        console.log(`✅ Đã tạo phiên AI cho user ${userId}`);
-        res.send(`✅ Đã bắt đầu phiên chơi AI cho user ${userId}`);
-    } catch (err) {
-        console.error("❌ Lỗi khi tạo phiên AI:", err);
-        res.status(500).send("❌ Lỗi khi tạo phiên chơi AI");
-    }
+    console.log(`✅ Đã tạo phiên AI cho user ${userId}`);
+    res.json({
+      message: `✅ Đã bắt đầu phiên chơi AI cho user ${userId}`,
+      aiMove: aiMoveFirst,
+    });
+  } catch (err) {
+    console.error("❌ Lỗi khi tạo phiên AI:", err);
+    res.status(500).send("❌ Lỗi khi tạo phiên chơi AI");
+  }
 });
-
 
 /**
  * @swagger
@@ -112,37 +131,36 @@ router.post("/start-ai-match", async (req, res) => {
  *                   type: string
  */
 router.post("/play-ai", async (req, res) => {
-    const { userId, move } = req.body;
-    console.log("🧠 [PLAYER MOVE] userId:", userId, "| move:", move);
+  const { userId, move } = req.body;
+  console.log("🧠 [PLAYER MOVE] userId:", userId, "| move:", move);
 
-    const session = GameOfGoManager.getSession(userId);
+  const session = GameOfGoManager.getSession(userId);
 
-    if (!session) {
-        console.log("❌ Không tìm thấy phiên cho user:", userId);
-        return res.status(404).send("❌ Chưa có phiên chơi");
-    }
+  if (!session) {
+    console.log("❌ Không tìm thấy phiên cho user:", userId);
+    return res.status(404).send("❌ Chưa có phiên chơi");
+  }
 
-    const { sendCommand, match } = session;
-    const playerColor = match.playerColor;
-    const aiColor = playerColor === "B" ? "W" : "B";
+  const { sendCommand, match } = session;
+  const playerColor = match.playerColor;
+  const aiColor = playerColor === "B" ? "W" : "B";
 
-    try {
-        console.log(`🎯 Người chơi (${playerColor}) đánh: ${move}`);
-        await sendCommand(`play ${playerColor} ${move}`);
-        match.history.push({ player: playerColor, move });
+  try {
+    console.log(`🎯 Người chơi (${playerColor}) đánh: ${move}`);
+    await sendCommand(`play ${playerColor} ${move}`);
+    match.history.push({ player: playerColor, move });
 
-        console.log(`🤖 AI (${aiColor}) đang suy nghĩ...`);
-        const aiMove = await sendCommand(`genmove ${aiColor}`);
-        const cleanedAiMove = aiMove.trim().replace(/^= /, '');
-console.log(`🤖 AI đánh: ${cleanedAiMove}`);
-match.history.push({ player: aiColor, move: cleanedAiMove });
+    console.log(`🤖 AI (${aiColor}) đang suy nghĩ...`);
+    const aiMove = await sendCommand(`genmove ${aiColor}`);
+    const cleanedAiMove = aiMove.trim().replace(/^= /, "");
+    console.log(`🤖 AI đánh: ${cleanedAiMove}`);
+    match.history.push({ player: aiColor, move: cleanedAiMove });
 
-res.json({ playerMove: move, aiMove: cleanedAiMove });
-
-    } catch (err) {
-        console.error("❌ Lỗi khi xử lý nước đi:", err);
-        res.status(500).send("❌ Lỗi khi xử lý nước đi AI");
-    }
+    res.json({ playerMove: move, aiMove: cleanedAiMove });
+  } catch (err) {
+    console.error("❌ Lỗi khi xử lý nước đi:", err);
+    res.status(500).send("❌ Lỗi khi xử lý nước đi AI");
+  }
 });
 
 /**
@@ -168,17 +186,17 @@ res.json({ playerMove: move, aiMove: cleanedAiMove });
  *         description: Không tìm thấy engine
  */
 router.post("/stop-ai", async (req, res) => {
-    const { userId } = req.body;
-    console.log("🛑 [STOP MATCH] userId:", userId);
-    const stopped = await GameOfGoManager.stopMatch(userId);
+  const { userId } = req.body;
+  console.log("🛑 [STOP MATCH] userId:", userId);
+  const stopped = await GameOfGoManager.stopMatch(userId);
 
-    if (stopped) {
-        console.log("🛑 Đã dừng phiên AI cho:", userId);
-        return res.send("🛑 Đã dừng engine thành công");
-    } else {
-        console.log("❌ Không tìm thấy phiên để dừng:", userId);
-        return res.status(404).send("❌ Không tìm thấy phiên để dừng");
-    }
+  if (stopped) {
+    console.log("🛑 Đã dừng phiên AI cho:", userId);
+    return res.send("🛑 Đã dừng engine thành công");
+  } else {
+    console.log("❌ Không tìm thấy phiên để dừng:", userId);
+    return res.status(404).send("❌ Không tìm thấy phiên để dừng");
+  }
 });
 
 module.exports = router;

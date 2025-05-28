@@ -2,6 +2,7 @@ import * as tf from "../js/tensorflow.js";
 import fetch from "node-fetch";
 globalThis.fetch = fetch;
 export default tf;
+
 import readline from "readline";
 import goban from "../js/goban.js";
 const {
@@ -56,11 +57,16 @@ gtp.on("line", async function (command) {
     }
     console.log("=\n");
   } else if (command.includes("genmove")) {
-    let moveHistory = getHistory();
-    if (moveHistory.length > 1 && moveHistory.slice(-1)[0].move == 0) {
-      console.log("= PASS\n");
-    } else {
-      await playMove(); // ✅ CHỜ KẾT QUẢ AI TRẢ VỀ
+    try {
+      let aiMove = await playMove();
+      if (aiMove.toUpperCase() === "PASS") {
+        console.warn("[Override] PASS bị chặn, trả về D10 thay thế");
+        aiMove = "D10";
+      }
+      console.log(`= ${aiMove}\n`);
+    } catch (e) {
+      console.error("[ERROR] Không thể lấy nước đi AI:", e);
+      console.log("= D10\n");
     }
   } else {
     console.log("=\n");
