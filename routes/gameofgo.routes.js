@@ -81,7 +81,12 @@ router.post("/start-ai-match", async (req, res) => {
         ),
       ]);
 
-      aiMoveFirst = aiMove.trim().replace(/^= /, "");
+      aiMoveFirst =
+        aiMove
+          .split("\n")
+          .map((line) => line.replace(/^=\s*/, ""))
+          .find((line) => /^[A-T][0-9]{1,2}$/i.test(line)) || "PASS";
+
       session.match.history.push({ player: "B", move: aiMoveFirst });
 
       console.log("✅ AI (Đen) đi nước đầu tiên:", aiMoveFirst);
@@ -151,12 +156,17 @@ router.post("/play-ai", async (req, res) => {
     match.history.push({ player: playerColor, move });
 
     console.log(`🤖 AI (${aiColor}) đang suy nghĩ...`);
-    const aiMove = await sendCommand(`genmove ${aiColor}`);
-    const cleanedAiMove = aiMove.trim().replace(/^= /, "");
-    console.log(`🤖 AI đánh: ${cleanedAiMove}`);
-    match.history.push({ player: aiColor, move: cleanedAiMove });
+    const aiMoveRaw = await sendCommand(`genmove ${aiColor}`);
+    const aiMoveCleaned =
+      aiMoveRaw
+        .split("\n")
+        .map((line) => line.replace(/^=\s*/, ""))
+        .find((line) => /^[A-T][0-9]{1,2}$/i.test(line)) || "PASS";
 
-    res.json({ playerMove: move, aiMove: cleanedAiMove });
+    console.log(`🤖 AI đánh: ${aiMoveCleaned}`);
+    match.history.push({ player: aiColor, move: aiMoveCleaned });
+
+    res.json({ playerMove: move, aiMove: aiMoveCleaned });
   } catch (err) {
     console.error("❌ Lỗi khi xử lý nước đi:", err);
     res.status(500).send("❌ Lỗi khi xử lý nước đi AI");
