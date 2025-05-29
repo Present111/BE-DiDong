@@ -55,7 +55,10 @@ var ko = EMPTY;
 var bestMove = EMPTY;
 var userMove = EMPTY;
 var moveCount = EMPTY;
-var level = 1;
+var level =
+  typeof global !== "undefined" && global.level !== undefined
+    ? global.level
+    : 0;
 
 function clearBoard() {
   board = [];
@@ -445,7 +448,7 @@ async function playMove(button) {
   let moveScores = [];
 
   try {
-    const model = await (level ? danModel : kyuModel);
+    const model = level === 1 ? danModel : kyuModel;
     const results = await model.executeAsync({
       "swa_model/bin_inputs": tf.tensor(
         binInputs,

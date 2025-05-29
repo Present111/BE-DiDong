@@ -12,7 +12,7 @@ class GameOfGoManager {
     const gtpPath = path.join(__dirname, "../go/gtp/gtp.js");
     console.log(`📁 Đường dẫn GTP: ${gtpPath}`);
 
-    const engine = spawn("node", [gtpPath]);
+    const engine = spawn("node", [gtpPath, difficulty]);
     const buffer = { data: "" };
     const callbacks = [];
 

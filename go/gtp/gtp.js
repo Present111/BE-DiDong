@@ -16,6 +16,7 @@ const {
   playMove,
   passMove,
 } = goban;
+const DIFFICULTY = process.argv[2] || "normal";
 
 var gtp = readline.createInterface({
   input: process.stdin,
@@ -74,3 +75,5 @@ gtp.on("line", async function (command) {
 });
 
 initGoban();
+if (DIFFICULTY === "hard") global.level = 1; // Dùng danModel
+else global.level = 0; // Normal và easy dùng kyuModel
