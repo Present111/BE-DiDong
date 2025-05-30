@@ -475,7 +475,7 @@ async function playMove(button) {
     const topN = level === 0 ? 150 : 50;
     const topMoves = moveScores.slice(0, topN).sort(() => 0.5 - Math.random());
 
-    for (let move of top50) {
+    for (let move of topMoves) {
       const row = Math.floor(move.idx / 19);
       const col = move.idx % 19;
       const boardIndex = 21 * (row + 1) + (col + 1);
