@@ -448,7 +448,7 @@ async function playMove(button) {
   let moveScores = [];
 
   try {
-    const model = level === 1 ? danModel : kyuModel;
+    const model = level === 2 ? danModel : kyuModel;
     const results = await model.executeAsync({
       "swa_model/bin_inputs": tf.tensor(
         binInputs,
@@ -472,7 +472,8 @@ async function playMove(button) {
       .map((prob, idx) => ({ idx, prob }))
       .sort((a, b) => b.prob - a.prob);
 
-    const top50 = moveScores.slice(0, 50).sort(() => 0.5 - Math.random());
+    const topN = level === 0 ? 150 : 50;
+    const topMoves = moveScores.slice(0, topN).sort(() => 0.5 - Math.random());
 
     for (let move of top50) {
       const row = Math.floor(move.idx / 19);

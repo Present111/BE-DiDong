@@ -75,5 +75,6 @@ gtp.on("line", async function (command) {
 });
 
 initGoban();
-if (DIFFICULTY === "hard") global.level = 1; // Dùng danModel
-else global.level = 0; // Normal và easy dùng kyuModel
+if (DIFFICULTY === "easy") global.level = 0; // đánh ngu (random rộng)
+else if (DIFFICULTY === "normal") global.level = 1; // đánh bình thường
+else if (DIFFICULTY === "hard") global.level = 2; // dùng model dan
