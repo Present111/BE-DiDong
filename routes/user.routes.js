@@ -2,6 +2,7 @@
 const express = require("express");
 const router = express.Router();
 const userController = require("../controllers/user.controller");
+const auth = require("../utils/authMiddleware");
 
 /**
  * @swagger
@@ -80,6 +81,8 @@ router.post("/register", userController.registerUser);
  *   post:
  *     summary: Create a new user
  *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -97,7 +100,7 @@ router.post("/register", userController.registerUser);
  *       201:
  *         description: User created
  */
-router.post("/", userController.createUser);
+router.post("/", auth, userController.createUser);
 
 /**
  * @swagger
@@ -105,11 +108,13 @@ router.post("/", userController.createUser);
  *   get:
  *     summary: Get all users
  *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
  *     responses:
  *       200:
  *         description: List of users
  */
-router.get("/", userController.getAllUsers);
+router.get("/", auth, userController.getAllUsers);
 
 /**
  * @swagger
@@ -117,6 +122,8 @@ router.get("/", userController.getAllUsers);
  *   get:
  *     summary: Search users not yet friends or requested
  *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: query
  *         name: query
@@ -132,7 +139,7 @@ router.get("/", userController.getAllUsers);
  *       200:
  *         description: List of users matching query
  */
-router.get("/search", userController.searchUsers);
+router.get("/search", auth, userController.searchUsers);
 
 /**
  * @swagger
@@ -140,6 +147,8 @@ router.get("/search", userController.searchUsers);
  *   get:
  *     summary: Get user by ID
  *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -150,7 +159,7 @@ router.get("/search", userController.searchUsers);
  *       200:
  *         description: User data
  */
-router.get("/:id", userController.getUserById);
+router.get("/:id", auth, userController.getUserById);
 
 /**
  * @swagger
@@ -158,6 +167,8 @@ router.get("/:id", userController.getUserById);
  *   put:
  *     summary: Update user by ID
  *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -174,7 +185,7 @@ router.get("/:id", userController.getUserById);
  *       200:
  *         description: User updated
  */
-router.put("/:id", userController.updateUser);
+router.put("/:id", auth, userController.updateUser);
 
 /**
  * @swagger
@@ -182,6 +193,8 @@ router.put("/:id", userController.updateUser);
  *   delete:
  *     summary: Delete user by ID
  *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -192,7 +205,7 @@ router.put("/:id", userController.updateUser);
  *       200:
  *         description: User deleted
  */
-router.delete("/:id", userController.deleteUser);
+router.delete("/:id", auth, userController.deleteUser);
 
 /**
  * @swagger
@@ -200,6 +213,8 @@ router.delete("/:id", userController.deleteUser);
  *   post:
  *     summary: Send friend request
  *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -219,7 +234,7 @@ router.delete("/:id", userController.deleteUser);
  *       200:
  *         description: Friend request sent
  */
-router.post("/:id/friends", userController.addFriend);
+router.post("/:id/friends", auth, userController.addFriend);
 
 /**
  * @swagger
@@ -227,6 +242,8 @@ router.post("/:id/friends", userController.addFriend);
  *   patch:
  *     summary: Update friend status
  *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -249,7 +266,7 @@ router.post("/:id/friends", userController.addFriend);
  *       200:
  *         description: Friend status updated
  */
-router.patch("/:id/friends", userController.updateFriendStatus);
+router.patch("/:id/friends", auth, userController.updateFriendStatus);
 
 /**
  * @swagger
@@ -257,6 +274,8 @@ router.patch("/:id/friends", userController.updateFriendStatus);
  *   post:
  *     summary: Send challenge to another user
  *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: userId
@@ -278,7 +297,7 @@ router.patch("/:id/friends", userController.updateFriendStatus);
  *       200:
  *         description: Challenge sent
  */
-router.post("/:userId/challenges/send", userController.sendChallenge);
+router.post("/:userId/challenges/send", auth, userController.sendChallenge);
 
 /**
  * @swagger
@@ -286,6 +305,8 @@ router.post("/:userId/challenges/send", userController.sendChallenge);
  *   patch:
  *     summary: Accept a challenge
  *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: userId
@@ -303,6 +324,7 @@ router.post("/:userId/challenges/send", userController.sendChallenge);
  */
 router.patch(
   "/:userId/challenges/:challengeId/accept",
+  auth,
   userController.acceptChallenge
 );
 
@@ -312,6 +334,8 @@ router.patch(
  *   patch:
  *     summary: Decline a challenge
  *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: userId
@@ -329,6 +353,7 @@ router.patch(
  */
 router.patch(
   "/:userId/challenges/:challengeId/decline",
+  auth,
   userController.declineChallenge
 );
 
@@ -338,6 +363,8 @@ router.patch(
  *   patch:
  *     summary: Cancel a challenge
  *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: receiverId
@@ -355,6 +382,7 @@ router.patch(
  */
 router.patch(
   "/:receiverId/challenges/:challengeId/cancel",
+  auth,
   userController.cancelChallenge
 );
 
@@ -370,6 +398,8 @@ router.post("/confirm-change-password", userController.confirmChangePassword);
  *   post:
  *     summary: Send a friend request
  *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -385,7 +415,7 @@ router.post("/confirm-change-password", userController.confirmChangePassword);
  *       200:
  *         description: Friend request sent
  */
-router.post("/friends/request", userController.sendFriendRequest);
+router.post("/friends/request", auth, userController.sendFriendRequest);
 
 /**
  * @swagger
@@ -393,6 +423,8 @@ router.post("/friends/request", userController.sendFriendRequest);
  *   post:
  *     summary: Respond to a friend request (accept or reject)
  *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -410,7 +442,7 @@ router.post("/friends/request", userController.sendFriendRequest);
  *       200:
  *         description: Friend request responded
  */
-router.post("/friends/respond", userController.respondToFriendRequest);
+router.post("/friends/respond", auth, userController.respondToFriendRequest);
 
 /**
  * @swagger
@@ -418,6 +450,8 @@ router.post("/friends/respond", userController.respondToFriendRequest);
  *   get:
  *     summary: Get friend requests received by user
  *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: userId
@@ -428,7 +462,7 @@ router.post("/friends/respond", userController.respondToFriendRequest);
  *       200:
  *         description: List of friend requests
  */
-router.get("/:userId/friends/requests", userController.getFriendRequests);
+router.get("/:userId/friends/requests", auth, userController.getFriendRequests);
 
 /**
  * @swagger
@@ -436,6 +470,8 @@ router.get("/:userId/friends/requests", userController.getFriendRequests);
  *   delete:
  *     summary: Unfriend another user (2-way removal)
  *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: userId
@@ -451,6 +487,6 @@ router.get("/:userId/friends/requests", userController.getFriendRequests);
  *       200:
  *         description: Unfriended successfully
  */
-router.delete("/:userId/unfriend/:friendId", userController.unfriendUser);
+router.delete("/:userId/unfriend/:friendId", auth, userController.unfriendUser);
 
 module.exports = router;

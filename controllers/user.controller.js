@@ -1,5 +1,7 @@
 // controllers/user.controller.js
 const User = require("../models/user.model");
+const bcrypt = require("bcrypt");
+const jwt = require("jsonwebtoken");
 
 // CRUD cơ bản
 
@@ -185,18 +187,42 @@ exports.login = async (req, res) => {
   try {
     const { username, password } = req.body;
 
-    // ✅ Tìm user theo username hoặc email
+    // Tìm user theo username hoặc email
     const user = await User.findOne({
       $or: [{ username }, { email: username }],
     });
 
     if (!user) return res.status(404).json({ error: "User not found" });
 
-    // ✅ So sánh password (vì bạn chưa dùng bcrypt nên chỉ so sánh thẳng)
-    if (user.password !== password)
-      return res.status(401).json({ error: "Invalid password" });
+    // Nếu là tài khoản Google thì không kiểm tra password
+    if (user.googleId && user.password === "-1") {
+      // Sinh token cho user Google
+      const payload = {
+        id: user._id,
+        username: user.username,
+        email: user.email,
+      };
+      const token = jwt.sign(payload, process.env.JWT_SECRET || "your_secret", {
+        expiresIn: "7d",
+      });
+      return res.json({ message: "Login successful (Google)", token, user });
+    }
 
-    res.json({ message: "Login successful", user });
+    // Kiểm tra password thường
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) return res.status(401).json({ error: "Invalid password" });
+
+    // Tạo token
+    const payload = {
+      id: user._id,
+      username: user.username,
+      email: user.email,
+    };
+    const token = jwt.sign(payload, process.env.JWT_SECRET || "your_secret", {
+      expiresIn: "7d",
+    });
+
+    res.json({ message: "Login successful", token, user });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -218,11 +244,9 @@ exports.registerUser = async (req, res) => {
         // 🔴 Kiểm tra nếu đã online → không cho login
         if (user.onlineStatus === "online") {
           console.log("⚠️ [Google Login] User đã online, từ chối đăng nhập");
-          return res
-            .status(403)
-            .json({
-              error: "Tài khoản này đang hoạt động trên thiết bị khác.",
-            });
+          return res.status(403).json({
+            error: "Tài khoản này đang hoạt động trên thiết bị khác.",
+          });
         }
 
         console.log("✅ [Google Login] User đã tồn tại:", user);
@@ -248,6 +272,7 @@ exports.registerUser = async (req, res) => {
     }
 
     // ✅ Đăng ký thông thường
+    // ✅ Đăng ký thông thường
     console.log("👉 [Normal Register] Bắt đầu kiểm tra username + email");
 
     const existingUsername = await User.findOne({ username });
@@ -264,9 +289,13 @@ exports.registerUser = async (req, res) => {
       }
     }
 
+    // Hash password trước khi lưu
+    const saltRounds = 10;
+    const hashedPassword = await bcrypt.hash(password, saltRounds);
+
     const newUser = new User({
       username,
-      password,
+      password: hashedPassword,
       email: email || "",
       displayName: username,
     });
@@ -388,7 +417,9 @@ exports.confirmChangePassword = async (req, res) => {
     console.log(
       `✅ [confirmChangePassword] Đổi mật khẩu cho user: ${user.username} (email: ${email})`
     );
-    user.password = newPassword;
+    // Hash mật khẩu mới trước khi lưu
+    const newHashedPassword = await bcrypt.hash(newPassword, 10);
+    user.password = newHashedPassword;
     await user.save();
 
     changePasswordCodes.delete(email);
