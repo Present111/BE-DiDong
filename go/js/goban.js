@@ -440,7 +440,8 @@ function inputTensor() {
 
 async function playMove(button) {
   if (!modelsReady) {
-    console.warn("[AI] Model chưa load xong, buộc chọn nước ngẫu nhiên");
+    console.warn("[AI] Model chưa load xong, fallback sang random");
+    return await playRandomMove(); // fallback luôn
   }
 
   const binInputs = inputTensor();
@@ -461,13 +462,34 @@ async function playMove(button) {
       ),
     });
 
+    // Lấy đúng policy tensor tuỳ theo model
     const policyTensor = level === 2 ? results[1] : results[3];
-    const flatPolicyArray = await policyTensor.reshape([361]).array();
+
+    // --- Sửa ở đây ---
+    // In shape để debug
+    console.log("Shape of policyTensor:", policyTensor.shape);
+
+    let flatPolicyArray;
+    const shape = policyTensor.shape;
+    if (shape[2] === 362) {
+      // Lấy policy ở channel 0
+      let policyTensorChannel0 = policyTensor.slice([0, 0, 0], [1, 1, 362]);
+      flatPolicyArray = await policyTensorChannel0.reshape([362]).array();
+      flatPolicyArray = flatPolicyArray.slice(0, 361); // Nếu không cho AI PASS
+    } else if (shape[2] === 361) {
+      let policyTensorChannel0 = policyTensor.slice([0, 0, 0], [1, 1, 361]);
+      flatPolicyArray = await policyTensorChannel0.reshape([361]).array();
+    } else {
+      throw new Error("Unexpected policy output shape: " + shape);
+    }
+
+    // -----------------
 
     moveScores = flatPolicyArray
       .map((prob, idx) => ({ idx, prob }))
       .sort((a, b) => b.prob - a.prob);
 
+    // Easy: random trong top 150; Normal/Hard: random trong top 50
     const topN = level === 0 ? 150 : 50;
     const topMoves = moveScores.slice(0, topN).sort(() => 0.5 - Math.random());
 
@@ -483,8 +505,7 @@ async function playMove(button) {
       }
     }
 
-    console.warn("[Fallback] Không nước nào trong top hợp lệ, thử toàn bộ");
-
+    // Fallback thử toàn bộ
     for (let move of moveScores) {
       const row = Math.floor(move.idx / 19);
       const col = move.idx % 19;
@@ -497,11 +518,15 @@ async function playMove(button) {
       }
     }
   } catch (e) {
-    console.error("[ERROR] Lỗi model, fallback sang đánh random:", e);
+    console.error("[ERROR] Lỗi model, fallback random:", e);
+    return await playRandomMove();
   }
 
-  // Fallback cuối cùng
-  console.warn("[Ultimate Fallback] Đánh 1 nước random vì mọi thứ đều fail");
+  return await playRandomMove();
+}
+
+async function playRandomMove() {
+  console.warn("[Fallback] Đánh 1 nước random");
 
   const emptyMoves = [];
   for (let row = 0; row < 19; row++) {
@@ -522,6 +547,7 @@ async function playMove(button) {
     console.log(`= ${coord}\n`);
     return coord;
   } else {
+    console.error("[BUG] Không còn nước nào trống, fallback K10");
     const fallbackIndex = 21 * 10 + 10;
     setStone(fallbackIndex, side, false);
     console.log("= K10\n");
