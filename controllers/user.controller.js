@@ -250,7 +250,17 @@ exports.registerUser = async (req, res) => {
         }
 
         console.log("✅ [Google Login] User đã tồn tại:", user);
-        return res.json({ message: "Login by Google successful", user });
+        const payload = {
+          id: user._id,
+          username: user.username,
+          email: user.email,
+        };
+        const token = jwt.sign(
+          payload,
+          process.env.JWT_SECRET || "your_secret",
+          { expiresIn: "7d" }
+        );
+        return res.json({ message: "Login by Google successful", token, user });
       }
 
       // Nếu chưa tồn tại → tạo mới
