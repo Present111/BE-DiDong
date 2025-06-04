@@ -248,8 +248,7 @@ exports.registerUser = async (req, res) => {
             error: "Tài khoản này đang hoạt động trên thiết bị khác.",
           });
         }
-
-        console.log("✅ [Google Login] User đã tồn tại:", user);
+        // ✅ Tạo token cho user Google đã tồn tại
         const payload = {
           id: user._id,
           username: user.username,
@@ -278,10 +277,19 @@ exports.registerUser = async (req, res) => {
       await user.save();
       console.log("✅ [Google Login] User đã lưu thành công:", user);
 
-      return res.json({ message: "Login by Google successful", user });
+      // ✅ Tạo token cho user Google mới
+      const payload = {
+        id: user._id,
+        username: user.username,
+        email: user.email,
+      };
+      const token = jwt.sign(payload, process.env.JWT_SECRET || "your_secret", {
+        expiresIn: "7d",
+      });
+
+      return res.json({ message: "Login by Google successful", token, user });
     }
 
-    // ✅ Đăng ký thông thường
     // ✅ Đăng ký thông thường
     console.log("👉 [Normal Register] Bắt đầu kiểm tra username + email");
 
