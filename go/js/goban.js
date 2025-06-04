@@ -444,7 +444,6 @@ async function playMove(button) {
   }
 
   const binInputs = inputTensor();
-
   let moveScores = [];
 
   try {
@@ -462,11 +461,8 @@ async function playMove(button) {
       ),
     });
 
-    const policyTensor = level ? results[1] : results[3];
-    const policyArray = await policyTensor
-      .slice([0, 0, 0], [1, 1, 361])
-      .array();
-    const flatPolicyArray = policyArray[0][0];
+    const policyTensor = level === 2 ? results[1] : results[3];
+    const flatPolicyArray = await policyTensor.reshape([361]).array();
 
     moveScores = flatPolicyArray
       .map((prob, idx) => ({ idx, prob }))
@@ -487,7 +483,7 @@ async function playMove(button) {
       }
     }
 
-    console.warn("[Fallback] Không nước nào trong top 50 hợp lệ, thử toàn bộ");
+    console.warn("[Fallback] Không nước nào trong top hợp lệ, thử toàn bộ");
 
     for (let move of moveScores) {
       const row = Math.floor(move.idx / 19);
@@ -504,7 +500,7 @@ async function playMove(button) {
     console.error("[ERROR] Lỗi model, fallback sang đánh random:", e);
   }
 
-  // Fallback cuối cùng: chọn ngẫu nhiên một ô còn trống
+  // Fallback cuối cùng
   console.warn("[Ultimate Fallback] Đánh 1 nước random vì mọi thứ đều fail");
 
   const emptyMoves = [];
@@ -526,8 +522,6 @@ async function playMove(button) {
     console.log(`= ${coord}\n`);
     return coord;
   } else {
-    // Trường hợp rất hiếm: không còn ô trống nào → chơi bậy 1 nước
-    console.error("[BUG] Không còn nước nào trống, đánh lại ô (10,10)");
     const fallbackIndex = 21 * 10 + 10;
     setStone(fallbackIndex, side, false);
     console.log("= K10\n");
