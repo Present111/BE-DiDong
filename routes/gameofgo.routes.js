@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const GameOfGoManager = require("../services/GameOfGoManager");
+const goban = require("../go/js/goban");
 
 /**
  * @swagger
@@ -41,6 +42,12 @@ const GameOfGoManager = require("../services/GameOfGoManager");
  *         description: Tạo thành công phiên chơi AI
  */
 router.post("/start-ai-match", async (req, res) => {
+  await goban.initModels(); // Đảm bảo model đã sẵn sàng
+  if (!goban.isReady()) {
+    return res.status(503).json({
+      error: "AI đang khởi động. Hãy thử lại sau vài giây!",
+    });
+  }
   const {
     userId,
     difficulty = "normal",

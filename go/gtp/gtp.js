@@ -16,6 +16,10 @@ const {
   playMove,
   passMove,
 } = goban;
+
+// Đảm bảo model đã sẵn sàng trước khi làm bất cứ điều gì!
+await goban.initModels(); // <--- CHỜ CHẮC CHẮN XONG!
+
 const DIFFICULTY = process.argv[2] || "normal";
 
 var gtp = readline.createInterface({

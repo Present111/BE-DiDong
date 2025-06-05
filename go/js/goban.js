@@ -2,21 +2,6 @@ var tf;
 var danModel, kyuModel;
 let modelsReady = false;
 
-if (typeof module !== "undefined") {
-  (async () => {
-    const tfModule = await import("./tensorflow.js");
-    tf = tfModule.default;
-    danModel = await tf.loadGraphModel(
-      "https://maksimkorzh.github.io/go/model/dan/model.json"
-    );
-    kyuModel = await tf.loadGraphModel(
-      "https://maksimkorzh.github.io/go/model/kyu/model.json"
-    );
-    modelsReady = true; // ✅ Đánh dấu đã sẵn sàng
-    console.log("[AI] Models loaded thành công");
-  })();
-}
-
 if (typeof document != "undefined") {
   (async () => {
     document.getElementById("stats").innerHTML =
@@ -598,7 +583,25 @@ function initGoban() {
   moveCount = moveHistory.length - 1;
 }
 
-if (typeof module != "undefined") {
+function isReady() {
+  return modelsReady;
+}
+
+async function initModels() {
+  if (modelsReady) return;
+  const tfModule = await import("./tensorflow.js");
+  tf = tfModule.default;
+  danModel = await tf.loadGraphModel(
+    "https://maksimkorzh.github.io/go/model/dan/model.json"
+  );
+  kyuModel = await tf.loadGraphModel(
+    "https://maksimkorzh.github.io/go/model/kyu/model.json"
+  );
+  modelsReady = true;
+  console.log("[AI] Models loaded thành công");
+}
+
+if (typeof module !== "undefined") {
   module.exports = {
     BLACK,
     WHITE,
@@ -609,5 +612,8 @@ if (typeof module != "undefined") {
     setStone,
     playMove,
     passMove,
+    // export thêm 2 hàm này:
+    isReady,
+    initModels,
   };
 }
