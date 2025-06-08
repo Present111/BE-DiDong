@@ -4,6 +4,15 @@ const User = require("../models/user.model");
 const socketInstance = require("../utils/socketInstance");   // ✅ lấy socket io instance
 const onlineUsers = require("../utils/onlineUsers");         // ✅ lấy danh sách user online
 
+const BASE_URL = process.env.BASE_URL || 'https://tough-relaxed-newt.ngrok-free.app';
+
+function attachAvatarFullUrl(user) {
+  if (user?.avatarUrl && !user.avatarUrl.startsWith('http')) {
+    user.avatarUrl = `${BASE_URL}/uploads/${user.avatarUrl.replace(/^\/?uploads\/?/, '')}`;
+  }
+  return user;
+}
+
 exports.createConversation = async (req, res) => {
     try {
         const { user1, user2 } = req.body;
@@ -100,64 +109,67 @@ exports.getConversation = async (req, res) => {
 // };
 
 
+
 exports.getConversationsByUser = async (req, res) => {
-    try {
-        const { userId } = req.params;
+  try {
+    const { userId } = req.params;
 
-        // Lấy danh sách friends đã là friend
-        const currentUser = await User.findById(userId);
-        if (!currentUser) return res.status(404).json({ error: "User not found" });
+    // Tìm user hiện tại
+    const currentUser = await User.findById(userId);
+    if (!currentUser) return res.status(404).json({ error: "User not found" });
 
-        const friendIds = currentUser.friends
-            .filter(f => f.status === 'friend')
-            .map(f => f.friendId.toString());
+    // Lấy danh sách bạn bè đã xác nhận
+    const friendIds = currentUser.friends
+      .filter(f => f.status === 'friend')
+      .map(f => f.friendId.toString());
 
-        // Tìm tất cả conversations có userId
-        const conversations = await ChatMessage.find({
-            $or: [{ user1: userId }, { user2: userId }]
-        }).populate('user1 user2 messages.sender');
+    // Tìm tất cả cuộc trò chuyện có liên quan đến userId
+    const conversations = await ChatMessage.find({
+      $or: [{ user1: userId }, { user2: userId }]
+    }).populate('user1 user2 messages.sender');
 
-        const result = conversations
-            .filter(conv => {
-                const friendId = conv.user1._id.toString() === userId
-                    ? conv.user2._id.toString()
-                    : conv.user1._id.toString();
-                // ✅ Chỉ lấy nếu friendId nằm trong danh sách friends
-                return friendIds.includes(friendId);
-            })
-            .map(conv => {
-                const isUser1 = conv.user1._id.toString() === userId;
-                const friend = isUser1 ? conv.user2 : conv.user1;
+    const result = conversations
+      .filter(conv => {
+        const friendId = conv.user1._id.toString() === userId
+          ? conv.user2._id.toString()
+          : conv.user1._id.toString();
+        return friendIds.includes(friendId);
+      })
+      .map(conv => {
+        const isUser1 = conv.user1._id.toString() === userId;
+        const friend = isUser1 ? conv.user2 : conv.user1;
 
-                const lastMessage = conv.messages.length > 0
-                    ? conv.messages[conv.messages.length - 1]
-                    : null;
+        attachAvatarFullUrl(friend);
 
-                const unreadCount = conv.messages.filter(msg => {
-                    const fromFriend = msg.sender._id.toString() === friend._id.toString();
-                    const notRead = isUser1 ? !msg.isRead1 : !msg.isRead2;
-                    return fromFriend && notRead;
-                }).length;
+        const lastMessage = conv.messages.length > 0
+          ? conv.messages[conv.messages.length - 1]
+          : null;
 
-                return {
-                    conversationId: conv._id,
-                    friend: {
-                        _id: friend._id,
-                        username: friend.username,
-                        displayName: friend.displayName,
-                        avatarUrl: friend.avatarUrl
-                    },
-                    lastMessage: lastMessage ? lastMessage.text : '',
-                    lastMessageTime: lastMessage ? lastMessage.sentAt : null,
-                    unreadCount: unreadCount,
-                    isYou: lastMessage ? lastMessage.sender._id.toString() === userId : false
-                };
-            });
+        const unreadCount = conv.messages.filter(msg => {
+          const fromFriend = msg.sender._id.toString() === friend._id.toString();
+          const notRead = isUser1 ? !msg.isRead1 : !msg.isRead2;
+          return fromFriend && notRead;
+        }).length;
 
-        res.status(200).json(result);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
+        return {
+          conversationId: conv._id,
+          friend: {
+            _id: friend._id,
+            username: friend.username,
+            displayName: friend.displayName,
+            avatarUrl: friend.avatarUrl
+          },
+          lastMessage: lastMessage ? lastMessage.text : '',
+          lastMessageTime: lastMessage ? lastMessage.sentAt : null,
+          unreadCount,
+          isYou: lastMessage ? lastMessage.sender._id.toString() === userId : false
+        };
+      });
+
+    res.status(200).json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 };
 
 

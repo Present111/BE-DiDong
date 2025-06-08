@@ -10,10 +10,11 @@ const userRoutes = require("./routes/user.routes");
 const chatMessageRoutes = require("./routes/chatMessage.routes");
 const uploadRoute = require("./routes/uploadRoute");
 const gameOfGoRoutes = require("./routes/gameofgo.routes");
-
+const path = require('path');
 const socketInstance = require("./utils/socketInstance");
 
 const app = express();
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 app.use(cors());
 app.use(express.json());
 

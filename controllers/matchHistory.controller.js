@@ -1,6 +1,15 @@
 // controllers/matchHistory.controller.js
 const MatchHistory = require("../models/matchHistory.model");
 const User = require("../models/user.model");
+
+function attachAvatarFullUrl(user) {
+  const BASE_URL = process.env.BASE_URL || 'https://tough-relaxed-newt.ngrok-free.app'; // Update this as needed
+
+  if (user?.avatarUrl && !user.avatarUrl.startsWith('http')) {
+    user.avatarUrl = `${BASE_URL}/uploads/${user.avatarUrl.replace(/^\/?uploads\/?/, '')}`;
+  }
+  return user;
+}
 // Lấy toàn bộ match history
 exports.getAllMatches = async (req, res) => {
     try {
@@ -102,18 +111,23 @@ exports.createMatch = async (req, res) => {
 
 
 // Lấy chi tiết 1 match theo ID
+// Lấy chi tiết 1 match theo ID
 exports.getMatchById = async (req, res) => {
     try {
         const match = await MatchHistory.findById(req.params.id)
-            .populate("playerBlack", "username")
-            .populate("playerWhite", "username");
+            .populate("playerBlack", "username avatarUrl")
+            .populate("playerWhite", "username avatarUrl");
         if (!match) return res.status(404).json({ message: "Match not found" });
+
+        // Attach the full URL for the avatar for both players
+        match.playerBlack = attachAvatarFullUrl(match.playerBlack);
+        match.playerWhite = attachAvatarFullUrl(match.playerWhite);
+
         res.json(match);
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
 };
-
 // Xóa match theo ID
 exports.deleteMatch = async (req, res) => {
     try {
@@ -125,6 +139,16 @@ exports.deleteMatch = async (req, res) => {
     }
 };
 
+
+// Utility function to attach full URL for avatar
+function attachAvatarFullUrl(user) {
+  const BASE_URL = process.env.BASE_URL || 'https://a49f-14-169-30-135.ngrok-free.app'; // Update this as needed
+
+  if (user?.avatarUrl && !user.avatarUrl.startsWith('http')) {
+    user.avatarUrl = `${BASE_URL}/uploads/${user.avatarUrl.replace(/^\/?uploads\/?/, '')}`;
+  }
+  return user;
+}
 
 exports.getMatchesByUserId = async (req, res) => {
     const { userId } = req.params;
@@ -141,6 +165,12 @@ exports.getMatchesByUserId = async (req, res) => {
         if (!matches || matches.length === 0) {
             return res.status(404).json({ message: 'Không tìm thấy trận đấu nào cho user này.' });
         }
+
+        // Attach the full URL for the avatar for both players in each match
+        matches.forEach(match => {
+            match.playerBlack = attachAvatarFullUrl(match.playerBlack);
+            match.playerWhite = attachAvatarFullUrl(match.playerWhite);
+        });
 
         res.json(matches);
     } catch (error) {

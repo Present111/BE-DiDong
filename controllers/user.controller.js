@@ -4,7 +4,16 @@ const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 
 // CRUD cơ bản
+const BASE_URL = process.env.BASE_URL || 'https://tough-relaxed-newt.ngrok-free.app';
 
+
+
+function attachAvatarFullUrl(user) {
+  if (user?.avatarUrl && !user.avatarUrl.startsWith('http')) {
+    user.avatarUrl = `${BASE_URL}/uploads/${user.avatarUrl.replace(/^\/?uploads\/?/, '')}`;
+  }
+  return user;
+}
 const socketInstance = require("../utils/socketInstance"); // đường dẫn đúng tới file bạn tạo
 
 const emitFriendUpdate = (userIds) => {
@@ -37,24 +46,47 @@ exports.getAllUsers = async (req, res) => {
     const users = await User.find().populate(
       "matchHistory friends.friendId friends.messageId"
     );
-    res.json(users);
+  res.json(users.map(attachAvatarFullUrl));
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
-
 exports.getUserById = async (req, res) => {
   try {
     const user = await User.findById(req.params.id)
-      .populate({ path: "matchHistory" }) // ✅ MatchHistory
-      .populate({ path: "friends.friendId", model: "User" }) // ✅ friends.friendId → User
-      .populate({ path: "friends.messageId", model: "ChatMessage" }) // ✅ friends.messageId → ChatMessage
-      .populate({ path: "challenges.challengerId", model: "User" }) // ✅ challenges.challengerId → User
-      .populate({ path: "challenges.receiverId", model: "User" }); // ✅ challenges.receiverId → User
+      .populate({ path: "waitId", model: "User" }) // ✅ WaitId là người đang chờ thách đấu
+      .populate({ path: "matchHistory" })
+      .populate({ path: "friends.friendId", model: "User" })
+      .populate({ path: "friends.messageId", model: "ChatMessage" })
+      .populate({ path: "challenges.challengerId", model: "User" }) // ✅ Người gửi thách đấu
+      .populate({ path: "challenges.receiverId", model: "User" });  // ✅ Người nhận
 
     if (!user) return res.status(404).json({ error: "User not found" });
+
+    // ✅ Avatar chính
+    attachAvatarFullUrl(user);
+
+    // ✅ Avatar waitId
+    if (user.waitId && typeof user.waitId === 'object') {
+      attachAvatarFullUrl(user.waitId);
+    }
+
+    // ✅ Avatar bạn bè
+    user.friends?.forEach(friend => {
+      if (friend.friendId) {
+        attachAvatarFullUrl(friend.friendId);
+      }
+    });
+
+    // ✅ Avatar trong danh sách challenges
+    user.challenges?.forEach(challenge => {
+      if (challenge.challengerId) attachAvatarFullUrl(challenge.challengerId);
+      if (challenge.receiverId) attachAvatarFullUrl(challenge.receiverId);
+    });
+
     res.json(user);
   } catch (err) {
+    console.error('❌ Lỗi khi lấy user by ID:', err);
     res.status(500).json({ error: err.message });
   }
 };
@@ -66,7 +98,7 @@ exports.updateUser = async (req, res) => {
       new: true,
     });
     if (!user) return res.status(404).json({ error: "User not found" });
-    res.json(user);
+    res.json(attachAvatarFullUrl(user));
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -222,7 +254,8 @@ exports.login = async (req, res) => {
       expiresIn: "7d",
     });
 
-    res.json({ message: "Login successful", token, user });
+  res.json({ message: 'Login successful', token, user: attachAvatarFullUrl(user) });
+
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -323,7 +356,7 @@ exports.registerUser = async (req, res) => {
     await newUser.save();
     console.log("✅ [Normal Register] User đã lưu thành công:", newUser);
 
-    res.json({ message: "Register successful", user: newUser });
+   res.json({ message: 'Register successful', user: attachAvatarFullUrl(newUser) });
   } catch (err) {
     console.error("❌ [registerUser] Lỗi hệ thống:", err);
     res.status(500).json({ error: err.message });
@@ -501,7 +534,7 @@ exports.searchUsers = async (req, res) => {
     }).select("-password");
 
     console.log("✅ Kết quả tìm kiếm:", users.length);
-    res.json(users);
+  res.json(users.map(attachAvatarFullUrl));
   } catch (err) {
     console.error("❌ Lỗi khi tìm kiếm người dùng:", err);
     res.status(500).json({ error: err.message });
@@ -593,10 +626,15 @@ exports.getFriendRequests = async (req, res) => {
       return res.status(404).json({ error: "User not found" });
     }
 
-    const requests = user.friends.filter((f) => f.status === "request");
-    console.log("📥 Lời mời nhận được:", requests.length);
+const requests = user.friends
+  .filter(f => f.status === 'request')
+  .map(r => {
+    if (r.friendId) r.friendId = attachAvatarFullUrl(r.friendId);
+    return r;
+  });
 
-    res.json(requests);
+res.json(requests);
+
   } catch (err) {
     console.error("❌ Lỗi lấy lời mời:", err.message);
     res.status(500).json({ error: err.message });
@@ -708,3 +746,187 @@ exports.getUsersByElo = async (req, res) => {
       .json({ message: "Failed to fetch leaderboard", error: err.message });
   }
 };
+
+
+exports.sendChallengeDirect = async (req, res) => {
+  const { myId, opponentId } = req.body;
+
+  console.log('📥 Gửi thách đấu từ:', myId, '→ đến:', opponentId);
+
+  try {
+    const myUser = await User.findById(myId);
+    const opponent = await User.findById(opponentId);
+
+    if (!myUser || !opponent) {
+      console.warn('❌ Không tìm thấy người dùng:', {
+        myUserFound: !!myUser,
+        opponentFound: !!opponent,
+      });
+      return res.status(404).json({ message: "Người dùng không tồn tại." });
+    }
+
+    console.log('✅ Cả hai người dùng đều tồn tại.');
+    console.log('🔧 Gán waitId cho người gửi...');
+
+    // Gán waitId cho mình
+    myUser.waitId = opponentId;
+
+    console.log('✅ waitId đã gán:', myUser.waitId);
+
+    console.log('➕ Thêm challenge vào danh sách của đối thủ...');
+    opponent.challenges.push({
+      challengerId: myId,
+      receiverId: opponentId,
+      status: "pending",
+    });
+
+    console.log('✅ Challenge đã được thêm.');
+    console.log('💾 Lưu người gửi...');
+    await myUser.save();
+    console.log('✅ Người gửi đã được lưu.');
+
+    console.log('💾 Lưu đối thủ...');
+    await opponent.save();
+    console.log('✅ Đối thủ đã được lưu.');
+
+    console.log('🚀 Thách đấu gửi thành công.');
+    return res.json({ message: "Đã gửi thách đấu!" });
+  } catch (err) {
+    console.error('🔥 Lỗi khi gửi challenge:', err);
+    return res.status(500).json({ message: "Lỗi server khi gửi challenge." });
+  }
+};
+
+
+
+exports.acceptChallengeDirect = async (req, res) => {
+    const { myId, opponentId } = req.body;
+
+    try {
+        const me = await User.findById(myId);
+        const opponent = await User.findById(opponentId);
+
+        if (!me || !opponent) {
+            return res.status(404).json({ message: "Không tìm thấy người dùng." });
+        }
+
+        // Gán waitId cho mình
+        me.waitId = opponentId;
+
+        // Xoá challenge của đối thủ trong danh sách của mình
+        me.challenges = me.challenges.filter(chal => !chal.challengerId.equals(opponentId));
+        await me.save();
+
+        return res.json({ message: "Đã chấp nhận thách đấu!" });
+    } catch (err) {
+        return res.status(500).json({ message: "Lỗi server khi chấp nhận challenge." });
+    }
+};
+
+exports.declineChallengeDirect = async (req, res) => {
+    const { myId, opponentId } = req.body;
+
+    try {
+        const me = await User.findById(myId);
+        const opponent = await User.findById(opponentId);
+
+        if (!me || !opponent) {
+            return res.status(404).json({ message: "Không tìm thấy người dùng." });
+        }
+
+        // Xoá waitId của đối thủ
+        opponent.waitId = null;
+
+        // Xoá challenge của đối thủ ở chỗ mình
+        me.challenges = me.challenges.filter(chal => !chal.challengerId.equals(opponentId));
+
+        await opponent.save();
+        await me.save();
+
+        return res.json({ message: "Đã từ chối thách đấu." });
+    } catch (err) {
+        return res.status(500).json({ message: "Lỗi server khi từ chối challenge." });
+    }
+};
+
+
+exports.outChallenge = async (req, res) => {
+  const { userId } = req.body;
+
+  try {
+    const me = await User.findById(userId);
+    if (!me) {
+      return res.status(404).json({ message: "Người dùng không tồn tại" });
+    }
+
+    // ✅ Nếu không có waitId thì coi như đã thoát thách đấu
+    if (!me.waitId) {
+      return res.json({ message: "Không có đối thủ để thoát, xử lý an toàn" });
+    }
+
+    const opponentId = me.waitId;
+    const opponent = await User.findById(opponentId);
+
+    // Nếu không tìm được đối thủ cũng không sao, vẫn reset waitId
+    if (opponent) {
+      opponent.challenges = opponent.challenges.filter(
+        chal => !chal.challengerId.equals(userId) && !chal.receiverId.equals(userId)
+      );
+      opponent.waitId = null;
+      await opponent.save();
+    }
+
+    me.waitId = null;
+    await me.save();
+
+    return res.json({ message: "Đã thoát thách đấu" });
+  } catch (err) {
+    console.error("❌ Lỗi khi thoát challenge:", err);
+    return res.status(500).json({ message: "Lỗi server khi thoát challenge" });
+  }
+};
+
+
+exports.offlineChallenge = async (req, res) => {
+  const { userId } = req.body;
+
+  try {
+    const me = await User.findById(userId);
+    if (!me) return res.status(404).json({ message: "Không tìm thấy người dùng" });
+
+    // Xoá waitId của chính mình
+    me.waitId = null;
+    await me.save();
+
+    // Xoá tất cả challenge liên quan ở tất cả user
+    await User.updateMany(
+      {
+        "challenges": {
+          $elemMatch: {
+            $or: [
+              { challengerId: userId },
+              { receiverId: userId }
+            ]
+          }
+        }
+      },
+      {
+        $pull: {
+          challenges: {
+            $or: [
+              { challengerId: userId },
+              { receiverId: userId }
+            ]
+          }
+        }
+      }
+    );
+
+    return res.json({ message: "Đã xử lý offline: xoá waitId và challenge liên quan" });
+  } catch (err) {
+    console.error("❌ Lỗi offlineChallenge:", err);
+    return res.status(500).json({ message: "Lỗi server khi xử lý offline challenge" });
+  }
+};
+
+

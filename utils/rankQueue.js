@@ -10,27 +10,32 @@ module.exports = {
         if (index !== -1) queue.splice(index, 1);
     },
 
-    findMatch(user) {
-        const candidates = queue.filter(opponent =>
-            opponent._id.toString() !== user._id.toString()
-        );
+ findMatch(user, opponentId = null) {
+    if (opponentId) {
+      const opponent = queue.find(u => u._id.toString() === opponentId.toString());
+      return opponent || null;
+    }
 
-        if (candidates.length === 0) return null;
+    const candidates = queue.filter(opponent =>
+      opponent._id.toString() !== user._id.toString()
+    );
 
-        // Tìm opponent có ELO gần nhất
-        let closestOpponent = candidates[0];
-        let minDiff = Math.abs(user.elo - closestOpponent.elo);
+    if (candidates.length === 0) return null;
 
-        for (let i = 1; i < candidates.length; i++) {
-            const diff = Math.abs(user.elo - candidates[i].elo);
-            if (diff < minDiff) {
-                closestOpponent = candidates[i];
-                minDiff = diff;
-            }
-        }
+    // Elo-based matching
+    let closestOpponent = candidates[0];
+    let minDiff = Math.abs(user.elo - closestOpponent.elo);
 
-        return closestOpponent;
-    },
+    for (let i = 1; i < candidates.length; i++) {
+      const diff = Math.abs(user.elo - candidates[i].elo);
+      if (diff < minDiff) {
+        closestOpponent = candidates[i];
+        minDiff = diff;
+      }
+    }
+
+    return closestOpponent;
+  },
 
     getQueue() {
         return queue;

@@ -44,32 +44,47 @@ module.exports = (io) => {
         });
 
         // Tìm trận rank
-        socket.on("rank:find", async (userId) => {
-            const user = await User.findById(userId);
-            if (!user) return;
+    // Tìm trận rank
+      socket.on("rank:find", async ({ userId, opponentId }) => {
+  const user = await User.findById(userId);
+  if (!user) return;
 
-            const opponent = rankQueue.findMatch(user);
-            if (opponent) {
-                rankQueue.remove(opponent._id);
-                matches.setMatch(user._id.toString(), opponent._id.toString());
+  const opponent = rankQueue.findMatch(user, opponentId); // ✅ truyền opponentId nếu có
 
-                await User.updateMany(
-                    { _id: { $in: [user._id, opponent._id] } },
-                    { onlineStatus: 'in-game' }
-                );
+  if (opponent) {
+    rankQueue.remove(opponent._id);
+    matches.setMatch(user._id.toString(), opponent._id.toString());
 
-                const socket1 = onlineUsers.get(user._id.toString());
-                const socket2 = onlineUsers.get(opponent._id.toString());
+ 
 
-                io.to(socket1).emit("rank:matched", { opponent });
-                io.to(socket2).emit("rank:matched", { opponent: user });
-                console.log(`🥋 Rank Match: ${user.username} vs ${opponent.username}`);
-            } else {
-                rankQueue.add(user);
-                socket.emit("rank:waiting");
-                console.log(`⌛ ${user.username} đang chờ đối thủ trong hàng đợi`);
-            }
-        });
+    const socket1 = onlineUsers.get(user._id.toString());
+    const socket2 = onlineUsers.get(opponent._id.toString());
+
+    if (socket1) io.to(socket1).emit("rank:matched", { opponent });
+    if (socket2) io.to(socket2).emit("rank:matched", { opponent: user });
+
+    console.log(`🥋 Rank Match: ${user.username} vs ${opponent.username}`);
+  } else {
+    rankQueue.add(user);
+    socket.emit("rank:waiting");
+    console.log(`⌛ ${user.username} đang chờ đối thủ trong hàng đợi`);
+  }
+});
+
+
+socket.on("custom:play", ({ fromUser, toUser }) => {
+  const toSocket = onlineUsers.get(toUser);
+  if (!toSocket) {
+    console.log(`⚠️ User ${toUser} không online. Nhưng kệ, không báo lỗi gì cả.`);
+    return;
+  }
+
+  // ✅ Emit thẳng cho đối thủ, không gọi là “invite” nữa
+  io.to(toSocket).emit("custom:play", { fromUser });
+
+  console.log(`🎯 ${fromUser} bắt đầu custom play với ${toUser}`);
+});
+
 
         // ❌ Hủy tìm trận rank
         socket.on("rank:cancel", async (userId) => {
@@ -77,6 +92,66 @@ module.exports = (io) => {
             console.log(`🚫 User ${userId} hủy tìm trận rank`);
             socket.emit("rank:cancelled");
         });
+
+
+                // Bắt đầu trận thường với 2 ID đã biết (giống rank nhưng không ghép cặp)
+socket.on("match:custom", async ({ player1, player2 }) => {
+    // ✅ Check nếu đã có trận giữa 2 người
+    const existingOpponent1 = matches.getOpponent(player1);
+    const existingOpponent2 = matches.getOpponent(player2);
+
+    // Nếu đã có trận thì không tạo nữa
+    if (existingOpponent1 === player2 && existingOpponent2 === player1) {
+        console.log(`⚠️ Trận giữa ${player1} và ${player2} đã tồn tại. Bỏ qua.`);
+        return;
+    }
+
+    // ❗ Nếu 1 trong 2 đã trong trận khác
+    if (existingOpponent1 || existingOpponent2) {
+        console.log(`❌ Một trong hai người chơi đã đang trong trận khác.`);
+        return;
+    }
+
+    // ✅ Tạo trận mới
+    matches.setMatch(player1, player2);
+
+  
+    const socket1 = onlineUsers.get(player1);
+    const socket2 = onlineUsers.get(player2);
+
+    if (socket1) io.to(socket1).emit("match:started", { opponentId: player2 });
+    if (socket2) io.to(socket2).emit("match:started", { opponentId: player1 });
+
+    console.log(`🧩 Trận thường bắt đầu: ${player1} vs ${player2}`);
+});
+
+
+socket.on("challenge:refresh", async (userId) => {
+  const io = socketInstance.get();
+  if (!io) return;
+
+  try {
+    // Tìm tất cả các user liên quan, bao gồm cả chính bản thân userId
+    const users = await User.find({
+      $or: [
+        { _id: userId }, // 👈 THÊM: bản thân người gửi
+        { waitId: userId },
+        { "challenges.challengerId": userId },
+        { "challenges.receiverId": userId }
+      ]
+    }).select("_id");
+
+    users.forEach((u) => {
+      const targetSocket = onlineUsers.get(u._id.toString());
+      if (targetSocket) {
+        io.to(targetSocket).emit("challenge:refresh", { fromUser: userId });
+        console.log(`🔁 Emit challenge:refresh → ${u._id.toString()}`);
+      }
+    });
+  } catch (err) {
+    console.error("❌ Lỗi khi emit challenge:refresh:", err);
+  }
+});
 
         // ❌ Thoát trận đấu đang diễn ra
         socket.on("match:leave", async (userId) => {

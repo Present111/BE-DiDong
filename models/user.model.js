@@ -6,11 +6,19 @@ const userSchema = new mongoose.Schema({
     googleId: { type: String, default: "" },                  // 👈 Thêm dòng này
     password: { type: String, required: true },
     displayName: { type: String, default: "" },
-    avatarUrl: { type: String, default: "" },
+    avatarUrl: { 
+        type: String, 
+        default: "https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y" // Default Gravatar URL
+    },
     elo: { type: Number, default: 1000 },
     onlineStatus: { type: String, enum: ['online', 'offline', 'in-game'], default: 'offline' },
     dateOfBirth: { type: Date },
     nationality: { type: String, default: "" },
+    waitId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User",
+    default: null
+},
     matchHistory: [{
         type: mongoose.Schema.Types.ObjectId,
         ref: "MatchHistory"

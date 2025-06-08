@@ -489,4 +489,12 @@ router.get("/:userId/friends/requests", auth, userController.getFriendRequests);
  */
 router.delete("/:userId/unfriend/:friendId", auth, userController.unfriendUser);
 
+
+router.post("/challenges/direct/send", auth, userController.sendChallengeDirect);
+router.post("/challenges/direct/accept", auth, userController.acceptChallengeDirect);
+router.post("/challenges/direct/decline", auth, userController.declineChallengeDirect);
+router.post("/challenges/out", auth, userController.outChallenge);
+router.post("/challenges/offline", auth, userController.offlineChallenge);
 module.exports = router;
+
+
