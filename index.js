@@ -12,7 +12,7 @@ const uploadRoute = require("./routes/uploadRoute");
 const gameOfGoRoutes = require("./routes/gameofgo.routes");
 const path = require('path');
 const socketInstance = require("./utils/socketInstance");
-
+const postRoutes = require("./routes/post.routes");
 const app = express();
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 app.use(cors());
@@ -49,6 +49,7 @@ app.use("/api/users", userRoutes);
 app.use("/api/chat", chatMessageRoutes);
 app.use("/api", uploadRoute); // 👉 ✅ NEW: thêm route upload ảnh
 app.use("/api/gameofgo", gameOfGoRoutes);
+app.use("/api/posts", postRoutes);
 // ✅ Swagger config
 const PORT = process.env.PORT || 3000;
 const swaggerJsdoc = require("swagger-jsdoc");
